@@ -32,7 +32,7 @@ export function parseSQLToDiagram(sqlCode: string): SQLDiagram {
   const relationships: Relationship[] = [];
 
   try {
-    const ast = parse(sqlCode, { 
+    const ast = parse(sqlCode, {
       dialect: 'postgresql',
       includeRange: true,
       includeComments: true
@@ -40,7 +40,7 @@ export function parseSQLToDiagram(sqlCode: string): SQLDiagram {
 
     // Extract CREATE TABLE statements
     const statements = Array.isArray(ast.statements) ? ast.statements : [ast.statements];
-    
+
     statements.forEach((statement: unknown) => {
       if ((statement as Record<string, unknown>)?.type === 'create_table_stmt') {
         const table = parseCreateTable(statement as Record<string, unknown>);
@@ -78,7 +78,7 @@ function parseCreateTable(statement: Record<string, unknown>): Table | null {
     if (!tableName) return null;
 
     const columns: TableColumn[] = [];
-    
+
     if (statement.columns) {
       (statement.columns as unknown[]).forEach((col: unknown) => {
         const column = parseColumn(col as Record<string, unknown>);
@@ -159,9 +159,9 @@ export function parseSimpleSQL(sqlCode: string): SQLDiagram {
   while ((match = createTableRegex.exec(sqlCode)) !== null) {
     const tableName = match[1];
     const columnsText = match[2];
-    
+
     const columns = parseSimpleColumns(columnsText);
-    
+
     tables.push({
       name: tableName,
       columns
@@ -184,39 +184,39 @@ export function parseSimpleSQL(sqlCode: string): SQLDiagram {
 
 function parseSimpleColumns(columnsText: string): TableColumn[] {
   const columns: TableColumn[] = [];
-  
+
   // Split by comma but handle parentheses
   const columnStrings = columnsText.split(/,(?![^()]*\))/).map(s => s.trim());
-  
+
   columnStrings.forEach(columnStr => {
     if (columnStr.trim() === '') return;
-    
+
     // Skip table constraints
     if (columnStr.match(/^\s*(PRIMARY\s+KEY|FOREIGN\s+KEY|UNIQUE|CHECK|CONSTRAINT)/i)) {
       return;
     }
-    
+
     const parts = columnStr.trim().split(/\s+/);
     if (parts.length < 2) return;
-    
+
     const name = parts[0];
     const type = parts[1];
-    
+
     let nullable = true;
     let primaryKey = false;
     let foreignKey: { table: string; column: string } | undefined;
-    
+
     const columnText = columnStr.toUpperCase();
-    
+
     if (columnText.includes('NOT NULL')) {
       nullable = false;
     }
-    
+
     if (columnText.includes('PRIMARY KEY')) {
       primaryKey = true;
       nullable = false;
     }
-    
+
     // Look for REFERENCES
     const referencesMatch = columnStr.match(/REFERENCES\s+(\w+)\s*\((\w+)\)/i);
     if (referencesMatch) {
@@ -225,7 +225,7 @@ function parseSimpleColumns(columnsText: string): TableColumn[] {
         column: referencesMatch[2]
       };
     }
-    
+
     columns.push({
       name,
       type,
@@ -234,6 +234,6 @@ function parseSimpleColumns(columnsText: string): TableColumn[] {
       foreignKey
     });
   });
-  
+
   return columns;
 }

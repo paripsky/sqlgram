@@ -96,43 +96,45 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">SQL Editor</CardTitle>
-          <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg">SQL Editor</CardTitle>
+          <div className="flex flex-wrap gap-1 sm:gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={handleLoadExample}
-              className="text-xs"
+              className="text-xs flex-1 sm:flex-none min-w-0"
             >
-              Load Example
+              <span className="hidden sm:inline">Load Example</span>
+              <span className="sm:hidden">Example</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleImport}
-              className="text-xs"
+              className="text-xs flex-1 sm:flex-none min-w-0"
             >
-              <Upload className="w-3 h-3 mr-1" />
-              Import
+              <Upload className="w-3 h-3 sm:mr-1" />
+              <span className="hidden sm:inline">Import</span>
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="text-xs"
+              className="text-xs flex-1 sm:flex-none min-w-0"
             >
-              <Download className="w-3 h-3 mr-1" />
-              Export
+              <Download className="w-3 h-3 sm:mr-1" />
+              <span className="hidden sm:inline">Export</span>
             </Button>
             {onExecute && (
               <Button
                 size="sm"
                 onClick={onExecute}
-                className="text-xs"
+                className="text-xs flex-1 sm:flex-none min-w-0"
               >
-                <Play className="w-3 h-3 mr-1" />
-                Update Diagram
+                <Play className="w-3 h-3 sm:mr-1" />
+                <span className="hidden sm:inline">Update Diagram</span>
+                <span className="sm:hidden">Update</span>
               </Button>
             )}
           </div>
@@ -148,8 +150,8 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             theme="vs-dark"
             options={{
               minimap: { enabled: false },
-              fontSize: 14,
-              lineNumbers: 'on',
+              fontSize: window.innerWidth < 768 ? 12 : 14,
+              lineNumbers: window.innerWidth < 768 ? 'off' : 'on',
               roundedSelection: false,
               scrollBeyondLastLine: false,
               readOnly: false,
@@ -158,21 +160,26 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
               wrappingIndent: 'indent',
               tabSize: 2,
               insertSpaces: true,
-              folding: true,
+              folding: window.innerWidth >= 768,
               foldingHighlight: true,
               foldingImportsByDefault: true,
-              showFoldingControls: 'always',
+              showFoldingControls: window.innerWidth >= 768 ? 'always' : 'never',
               bracketPairColorization: {
                 enabled: true,
               },
               guides: {
-                bracketPairs: true,
+                bracketPairs: window.innerWidth >= 768,
                 indentation: true
               },
               quickSuggestions: {
                 other: true,
                 comments: false,
                 strings: false
+              },
+              overviewRulerLanes: window.innerWidth >= 768 ? 3 : 0,
+              scrollbar: {
+                vertical: window.innerWidth >= 768 ? 'auto' : 'hidden',
+                horizontal: 'auto',
               }
             }}
           />

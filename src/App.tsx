@@ -1,8 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CodeEditor } from '@/components/CodeEditor';
 import { DiagramViewWithProvider } from '@/components/DiagramView';
 import { parseSQLToDiagram, parseSimpleSQL } from '@/lib/sqlParser';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { SQLDiagram } from '@/lib/sqlParser';
 
 const defaultSQL = `-- PostgreSQL Database Schema Example
@@ -48,6 +50,7 @@ CREATE TABLE comments (
 function App() {
   const [sqlCode, setSqlCode] = useState(defaultSQL);
   const [diagram, setDiagram] = useState<SQLDiagram>({ tables: [], relationships: [] });
+  const isMobile = useIsMobile();
 
   // Parse SQL and update diagram
   const updateDiagram = useMemo(() => {
@@ -60,7 +63,7 @@ function App() {
       try {
         // Try advanced parser first
         const parsedDiagram = parseSQLToDiagram(sqlCode);
-        
+
         // If no tables found, try simple regex parser
         if (parsedDiagram.tables.length === 0) {
           const simpleParsedDiagram = parseSimpleSQL(sqlCode);
@@ -98,44 +101,74 @@ function App() {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-background">
-      <header className="border-b bg-card px-6 py-4">
+      <header className="border-b bg-card px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">SQLGram</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="text-xl sm:text-2xl font-bold">SQLGram</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground">
               PostgreSQL Schema Visualizer
             </p>
           </div>
-          <div className="text-sm text-muted-foreground">
-            {diagram.tables.length} table{diagram.tables.length !== 1 ? 's' : ''} • {diagram.relationships.length} relationship{diagram.relationships.length !== 1 ? 's' : ''}
+          <div className="text-xs sm:text-sm text-muted-foreground text-right">
+            <div className="hidden sm:block">
+              {diagram.tables.length} table{diagram.tables.length !== 1 ? 's' : ''} • {diagram.relationships.length} relationship{diagram.relationships.length !== 1 ? 's' : ''}
+            </div>
+            <div className="sm:hidden">
+              {diagram.tables.length}T • {diagram.relationships.length}R
+            </div>
           </div>
         </div>
       </header>
-      
+
       <main className="flex-1 overflow-hidden">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full p-4">
-              <CodeEditor
-                value={sqlCode}
-                onChange={setSqlCode}
-                onExecute={updateDiagram}
-              />
-            </div>
-          </ResizablePanel>
-          
-          <ResizableHandle withHandle />
-          
-          <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full p-4">
+        {isMobile ? (
+          <Tabs defaultValue="editor" className="h-full flex flex-col">
+            <TabsList className="mx-4 mt-4 grid w-auto grid-cols-2">
+              <TabsTrigger value="editor">SQL Editor</TabsTrigger>
+              <TabsTrigger value="diagram">Diagram</TabsTrigger>
+            </TabsList>
+            <TabsContent value="editor" className="flex-1 mt-2 mx-4 mb-4">
+              <div className="h-full">
+                <CodeEditor
+                  value={sqlCode}
+                  onChange={setSqlCode}
+                  onExecute={updateDiagram}
+                />
+              </div>
+            </TabsContent>
+            <TabsContent value="diagram" className="flex-1 mt-2 mx-4 mb-4">
               <div className="h-full border rounded-lg bg-card">
                 <div className="h-full">
                   <DiagramViewWithProvider diagram={diagram} />
                 </div>
               </div>
-            </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={50} minSize={30}>
+              <div className="h-full p-4">
+                <CodeEditor
+                  value={sqlCode}
+                  onChange={setSqlCode}
+                  onExecute={updateDiagram}
+                />
+              </div>
+            </ResizablePanel>
+
+            <ResizableHandle withHandle />
+
+            <ResizablePanel defaultSize={50} minSize={30}>
+              <div className="h-full p-4">
+                <div className="h-full border rounded-lg bg-card">
+                  <div className="h-full">
+                    <DiagramViewWithProvider diagram={diagram} />
+                  </div>
+                </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        )}
       </main>
     </div>
   );

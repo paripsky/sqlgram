@@ -118,3 +118,48 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile-specific improvements */
+@media (max-width: 768px) {
+  /* Prevent zoom on focus for form inputs */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  
+  /* Improve touch targets */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Prevent horizontal scrolling */
+  html, body {
+    overflow-x: hidden;
+  }
+  
+  /* Improve ReactFlow mobile experience */
+  .react-flow {
+    touch-action: none;
+  }
+  
+  .react-flow__controls {
+    bottom: 20px !important;
+    right: 20px !important;
+  }
+  
+  .react-flow__controls button {
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+
+/* Improve touch interactions */
+@media (hover: none) and (pointer: coarse) {
+  .react-flow__node {
+    cursor: default;
+  }
+  
+  .react-flow__edge {
+    pointer-events: none;
+  }
+}

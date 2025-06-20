@@ -10,6 +10,8 @@ import ReactFlow, {
   Position,
   Handle,
   MarkerType,
+  PanOnScrollMode,
+  BackgroundVariant,
 } from 'reactflow';
 import type { Node, Edge, Connection } from 'reactflow';
 import dagre from 'dagre';
@@ -37,46 +39,7 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
         type="target"
         position={Position.Top}
         id="top"
-        style={{ 
-          background: '#64748b',
-          borderColor: '#64748b',
-          width: 10,
-          height: 10
-        }}
-      />
-      
-      {/* Bottom handle for outgoing connections */}
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        id="bottom"
-        style={{ 
-          background: '#64748b',
-          borderColor: '#64748b',
-          width: 10,
-          height: 10
-        }}
-      />
-      
-      {/* Left handle for connections */}
-      <Handle
-        type="target"
-        position={Position.Left}
-        id="left"
-        style={{ 
-          background: '#64748b',
-          borderColor: '#64748b',
-          width: 10,
-          height: 10
-        }}
-      />
-      
-      {/* Right handle for connections */}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id="right"
-        style={{ 
+        style={{
           background: '#64748b',
           borderColor: '#64748b',
           width: 10,
@@ -84,34 +47,73 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
         }}
       />
 
-      <Card className="min-w-[250px] shadow-lg border-2">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-bold text-center">
+      {/* Bottom handle for outgoing connections */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        style={{
+          background: '#64748b',
+          borderColor: '#64748b',
+          width: 10,
+          height: 10
+        }}
+      />
+
+      {/* Left handle for connections */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        style={{
+          background: '#64748b',
+          borderColor: '#64748b',
+          width: 10,
+          height: 10
+        }}
+      />
+
+      {/* Right handle for connections */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        style={{
+          background: '#64748b',
+          borderColor: '#64748b',
+          width: 10,
+          height: 10
+        }}
+      />
+
+      <Card className="min-w-[200px] sm:min-w-[250px] shadow-lg border-2">
+        <CardHeader className="pb-2 sm:pb-3">
+          <CardTitle className="text-sm sm:text-lg font-bold text-center">
             {table.name}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-0">
-          <div className="space-y-2">
+          <div className="space-y-1 sm:space-y-2">
             {table.columns.map((column, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-2 rounded bg-muted/30"
+                className="flex items-center justify-between p-1.5 sm:p-2 rounded bg-muted/30"
               >
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">{column.name}</span>
+                <div className="flex items-center space-x-1 sm:space-x-2 min-w-0 flex-1">
+                  <span className="font-medium text-xs sm:text-sm truncate">{column.name}</span>
                   {column.primaryKey && (
-                    <Badge variant="default" className="text-xs">
+                    <Badge variant="default" className="text-[10px] sm:text-xs px-1 py-0">
                       PK
                     </Badge>
                   )}
                   {column.foreignKey && (
-                    <Badge variant="secondary" className="text-xs">
+                    <Badge variant="secondary" className="text-[10px] sm:text-xs px-1 py-0">
                       FK
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center space-x-1">
-                  <span className="text-sm text-muted-foreground">
+                <div className="flex items-center space-x-1 ml-2">
+                  <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[60px] sm:max-w-none">
                     {column.type}
                   </span>
                   {!column.nullable && (
@@ -140,8 +142,12 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
   dagreGraph.setDefaultEdgeLabel(() => ({}));
   dagreGraph.setGraph({ rankdir: direction });
 
+  const isMobile = window.innerWidth < 768;
+  const nodeWidth = isMobile ? 200 : 250;
+  const nodeHeight = isMobile ? 250 : 300;
+
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: 250, height: 300 });
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
   });
 
   edges.forEach((edge) => {
@@ -158,8 +164,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
     // We are shifting the dagre node position (anchor=center center) to the top left
     // so it matches the React Flow node anchor point (top left).
     node.position = {
-      x: nodeWithPosition.x - 125,
-      y: nodeWithPosition.y - 150,
+      x: nodeWithPosition.x - (nodeWidth / 2),
+      y: nodeWithPosition.y - (nodeHeight / 2),
     };
 
     return node;
@@ -188,17 +194,17 @@ export const DiagramView: React.FC<DiagramViewProps> = ({ diagram }) => {
       type: 'smoothstep',
       animated: true,
       label: `${rel.from.column} → ${rel.to.column}`,
-      style: { 
+      style: {
         stroke: '#64748b',
         strokeWidth: 2
       },
-      labelStyle: { 
-        fontSize: 12, 
+      labelStyle: {
+        fontSize: 12,
         fontWeight: 'bold',
         fill: '#64748b'
       },
-      labelBgStyle: { 
-        fill: 'white', 
+      labelBgStyle: {
+        fill: 'white',
         fillOpacity: 0.9,
         rx: 4,
         ry: 4
@@ -257,10 +263,29 @@ export const DiagramView: React.FC<DiagramViewProps> = ({ diagram }) => {
         nodeTypes={nodeTypes}
         connectionMode={ConnectionMode.Loose}
         fitView
+        fitViewOptions={{
+          padding: window.innerWidth < 768 ? 0.1 : 0.2,
+        }}
         className="bg-background"
+        panOnScroll={true}
+        panOnScrollMode={window.innerWidth < 768 ? PanOnScrollMode.Free : PanOnScrollMode.Vertical}
+        zoomOnPinch={true}
+        zoomOnScroll={window.innerWidth >= 768}
+        minZoom={0.1}
+        maxZoom={2}
       >
-        <Controls />
-        <Background />
+        <Controls
+          position="bottom-right"
+          className="!bottom-4 !right-4"
+          showZoom={window.innerWidth >= 768}
+          showFitView={true}
+          showInteractive={window.innerWidth >= 768}
+        />
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={window.innerWidth < 768 ? 8 : 12}
+          size={window.innerWidth < 768 ? 0.5 : 1}
+        />
       </ReactFlow>
     </div>
   );
