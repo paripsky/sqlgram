@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Play, Download, Upload, AlertCircle, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useTheme } from '@/hooks/use-theme';
 import type { SQLError } from '@/lib/sqlParser';
 
 interface CodeEditorProps {
@@ -63,6 +64,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
 }) => {
   const editorRef = useRef<unknown>(null);
   const monacoRef = useRef<Monaco | null>(null);
+  const { actualTheme } = useTheme();
 
   const handleEditorChange = (newValue: string | undefined) => {
     onChange(newValue || '');
@@ -206,7 +208,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             value={value}
             onChange={handleEditorChange}
             onMount={handleEditorDidMount}
-            theme="vs-dark"
+            theme={actualTheme === 'dark' ? 'vs-dark' : 'vs'}
             options={{
               minimap: { enabled: false },
               fontSize: window.innerWidth < 768 ? 12 : 14,

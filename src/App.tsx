@@ -3,6 +3,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CodeEditor } from '@/components/CodeEditor';
 import { DiagramViewWithProvider } from '@/components/DiagramView';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { parseSQLToDiagram, parseSimpleSQL } from '@/lib/sqlParser';
 import { useIsMobile } from '@/hooks/use-mobile';
 import type { SQLDiagram, SQLError } from '@/lib/sqlParser';
@@ -134,13 +135,16 @@ function App() {
               PostgreSQL Schema Visualizer
             </p>
           </div>
-          <div className="text-xs sm:text-sm text-muted-foreground text-right">
-            <div className="hidden sm:block">
-              {diagram.tables.length} table{diagram.tables.length !== 1 ? 's' : ''} • {diagram.relationships.length} relationship{diagram.relationships.length !== 1 ? 's' : ''}
+          <div className="flex items-center gap-4">
+            <div className="text-xs sm:text-sm text-muted-foreground text-right">
+              <div className="hidden sm:block">
+                {diagram.tables.length} table{diagram.tables.length !== 1 ? 's' : ''} • {diagram.relationships.length} relationship{diagram.relationships.length !== 1 ? 's' : ''}
+              </div>
+              <div className="sm:hidden">
+                {diagram.tables.length}T • {diagram.relationships.length}R
+              </div>
             </div>
-            <div className="sm:hidden">
-              {diagram.tables.length}T • {diagram.relationships.length}R
-            </div>
+            <ThemeToggle />
           </div>
         </div>
       </header>
