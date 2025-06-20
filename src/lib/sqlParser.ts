@@ -78,26 +78,51 @@ export function parseSQLToDiagram(sqlCode: string): SQLParseResult {
     tables.forEach(table => {
       table.columns.forEach(column => {
         if (column.foreignKey) {
-          relationships.push({
-            from: { table: table.name, column: column.name },
-            to: { table: column.foreignKey.table, column: column.foreignKey.column },
-            type: 'many-to-one'
-          });
+          const referencedTable = tables.find(t => t.name === column.foreignKey!.table);
+          if (referencedTable) {
+            const relationshipType = determineRelationshipType(
+              table,
+              column.name,
+              referencedTable,
+              column.foreignKey.column
+            );
+
+            relationships.push({
+              from: { table: table.name, column: column.name },
+              to: { table: column.foreignKey.table, column: column.foreignKey.column },
+              type: relationshipType
+            });
+          }
         }
       });
     });
 
+    // Update relationship types based on actual table structure
+    relationships.forEach(relationship => {
+      const fromTable = tables.find(table => table.name === relationship.from.table);
+      const toTable = tables.find(table => table.name === relationship.to.table);
+
+      if (fromTable && toTable) {
+        relationship.type = determineRelationshipType(
+          fromTable,
+          relationship.from.column,
+          toTable,
+          relationship.to.column
+        );
+      }
+    });
+
   } catch (error) {
     console.warn('SQL parsing error:', error);
-    
+
     // Extract error information from sql-parser-cst errors
     const sqlError = error as {
       message?: string;
     };
-    
+
     const message = sqlError.message || 'SQL parsing failed';
     const { line, column, cleanMessage } = parseErrorLocation(message);
-    
+
     errors.push({
       message: cleanMessage,
       line,
@@ -154,7 +179,7 @@ function parseColumn(col: Record<string, unknown>): TableColumn | null {
     // Handle dataType which can be a complex object
     const dataTypeObj = col.dataType as Record<string, unknown>;
     let dataType = 'unknown';
-    
+
     if (dataTypeObj) {
       const typeNameObj = dataTypeObj.name as Record<string, unknown>;
       dataType = (typeNameObj?.name || typeNameObj?.text || dataTypeObj.type) as string || 'unknown';
@@ -169,7 +194,7 @@ function parseColumn(col: Record<string, unknown>): TableColumn | null {
       (col.constraints as unknown[]).forEach((constraint: unknown) => {
         const constraintObj = constraint as Record<string, unknown>;
         const constraintType = constraintObj.type;
-        
+
         if (constraintType === 'constraint_not_null') {
           nullable = false;
         }
@@ -181,13 +206,13 @@ function parseColumn(col: Record<string, unknown>): TableColumn | null {
           // Handle REFERENCES table(column) syntax
           const tableObj = constraintObj.table as Record<string, unknown>;
           const table = tableObj?.name || tableObj?.text;
-          
+
           const columnsObj = constraintObj.columns as Record<string, unknown>;
           const expr = columnsObj?.expr as Record<string, unknown>;
           const items = expr?.items as unknown[];
           const firstItem = items?.[0] as Record<string, unknown>;
           const column = firstItem?.name || firstItem?.text || 'id';
-          
+
           if (table) {
             foreignKey = {
               table: table as string,
@@ -204,7 +229,7 @@ function parseColumn(col: Record<string, unknown>): TableColumn | null {
             const columnsArray = references.columns as unknown[];
             const columnObj = columnsArray?.[0] as Record<string, unknown>;
             const column = columnObj?.name || columnObj?.text || 'id';
-            
+
             if (table) {
               foreignKey = {
                 table: table as string,
@@ -265,7 +290,7 @@ export function parseSimpleSQL(sqlCode: string): SQLParseResult {
           relationships.push({
             from: { table: tableName, column: column.name },
             to: { table: column.foreignKey.table, column: column.foreignKey.column },
-            type: 'many-to-one'
+            type: 'many-to-one' // Will be updated later
           });
         }
       });
@@ -274,7 +299,7 @@ export function parseSimpleSQL(sqlCode: string): SQLParseResult {
     // Basic validation - check for unmatched parentheses
     const openParens = (sqlCode.match(/\(/g) || []).length;
     const closeParens = (sqlCode.match(/\)/g) || []).length;
-    
+
     if (openParens !== closeParens) {
       errors.push({
         message: 'Unmatched parentheses in SQL',
@@ -300,13 +325,28 @@ export function parseSimpleSQL(sqlCode: string): SQLParseResult {
         const lines = beforeMatch.split('\n');
         const line = lines.length;
         const column = lines[lines.length - 1].length + 1;
-        
+
         errors.push({
           message,
           line,
           column,
           severity: 'warning'
         });
+      }
+    });
+
+    // Update relationship types based on actual table structure
+    relationships.forEach(relationship => {
+      const fromTable = tables.find(table => table.name === relationship.from.table);
+      const toTable = tables.find(table => table.name === relationship.to.table);
+
+      if (fromTable && toTable) {
+        relationship.type = determineRelationshipType(
+          fromTable,
+          relationship.from.column,
+          toTable,
+          relationship.to.column
+        );
       }
     });
 
@@ -405,4 +445,40 @@ function parseErrorLocation(errorMessage: string): { line: number; column: numbe
   }
 
   return { line, column, cleanMessage };
+}
+
+// Determine relationship type based on foreign key constraints
+function determineRelationshipType(
+  fromTable: Table,
+  fromColumn: string,
+  toTable: Table,
+  toColumn: string
+): 'one-to-one' | 'one-to-many' | 'many-to-one' | 'many-to-many' {
+  // Find the foreign key column in the source table
+  const fkColumn = fromTable.columns.find(col => col.name === fromColumn);
+
+  // Find the referenced column in the target table
+  const referencedColumn = toTable.columns.find(col => col.name === toColumn);
+
+  // If the foreign key column is a primary key or unique, it's likely one-to-one
+  if (fkColumn?.primaryKey) {
+    return 'one-to-one';
+  }
+
+  // If the referenced column is a primary key (which is typical), it's many-to-one
+  if (referencedColumn?.primaryKey) {
+    // Check if this is a junction table (many-to-many scenario)
+    // A junction table typically has only foreign keys as columns and a composite primary key
+    const isJunctionTable = fromTable.columns.every(col => col.foreignKey || col.primaryKey) &&
+      fromTable.columns.filter(col => col.foreignKey).length >= 2;
+
+    if (isJunctionTable) {
+      return 'many-to-many';
+    }
+
+    return 'many-to-one';
+  }
+
+  // Default to many-to-one if we can't determine otherwise
+  return 'many-to-one';
 }

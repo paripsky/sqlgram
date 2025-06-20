@@ -175,6 +175,22 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
   return { nodes, edges };
 };
 
+// Helper function to format relationship type for display
+const formatRelationshipType = (type: string): string => {
+  switch (type) {
+    case 'one-to-one':
+      return 'One to One';
+    case 'one-to-many':
+      return 'One to Many';
+    case 'many-to-one':
+      return 'Many to One';
+    case 'many-to-many':
+      return 'Many to Many';
+    default:
+      return type;
+  }
+};
+
 export const DiagramView: React.FC<DiagramViewProps> = ({ diagram, isValidSQL }) => {
   const initialNodes: Node[] = useMemo(() => {
     return diagram.tables.map((table, index) => ({
@@ -194,7 +210,7 @@ export const DiagramView: React.FC<DiagramViewProps> = ({ diagram, isValidSQL })
       targetHandle: 'top',
       type: 'smoothstep',
       animated: true,
-      label: `${rel.from.column} → ${rel.to.column}`,
+      label: `${rel.from.column} - ${rel.to.column} (${formatRelationshipType(rel.type)})`,
       style: {
         stroke: '#64748b',
         strokeWidth: 2

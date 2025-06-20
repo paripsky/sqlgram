@@ -193,7 +193,6 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
               >
                 <Play className="w-3 h-3 sm:mr-1" />
                 <span className="hidden sm:inline">Update Diagram</span>
-                <span className="sm:hidden">Update</span>
               </Button>
             )}
           </div>

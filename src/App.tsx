@@ -147,12 +147,12 @@ function App() {
 
       <main className="flex-1 overflow-hidden">
         {isMobile ? (
-          <Tabs defaultValue="editor" className="h-full flex flex-col">
-            <TabsList className="mx-4 mt-4 grid w-auto grid-cols-2">
+          <Tabs defaultValue="editor" className="h-full flex flex-col gap-2 px-4">
+            <TabsList className="w-full h-fit mt-2">
               <TabsTrigger value="editor">SQL Editor</TabsTrigger>
               <TabsTrigger value="diagram">Diagram</TabsTrigger>
             </TabsList>
-            <TabsContent value="editor" className="flex-1 mt-2 mx-4 mb-4">
+            <TabsContent value="editor" className="flex-1">
               <div className="h-full">
                 <CodeEditor
                   value={sqlCode}
@@ -163,10 +163,10 @@ function App() {
                 />
               </div>
             </TabsContent>
-            <TabsContent value="diagram" className="flex-1 mt-2 mx-4 mb-4">
+            <TabsContent value="diagram" className="flex-1">
               <div className="h-full border rounded-lg bg-card">
                 <div className="h-full">
-                  <DiagramViewWithProvider diagram={diagram} />
+                  <DiagramViewWithProvider diagram={diagram} isValidSQL={isValidSQL} />
                 </div>
               </div>
             </TabsContent>
