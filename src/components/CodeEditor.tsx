@@ -1,13 +1,17 @@
-import React from 'react';
-import Editor from '@monaco-editor/react';
+import React, { useRef, useEffect, useCallback } from 'react';
+import Editor, { type Monaco } from '@monaco-editor/react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Play, Download, Upload } from 'lucide-react';
+import { Play, Download, Upload, AlertCircle, CheckCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import type { SQLError } from '@/lib/sqlParser';
 
 interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   onExecute?: () => void;
+  errors?: SQLError[];
+  isValid?: boolean;
 }
 
 const defaultSQL = `-- PostgreSQL Database Schema Example
@@ -53,17 +57,58 @@ CREATE TABLE comments (
 export const CodeEditor: React.FC<CodeEditorProps> = ({
   value,
   onChange,
-  onExecute
+  onExecute,
+  errors = [],
+  isValid = true
 }) => {
+  const editorRef = useRef<unknown>(null);
+  const monacoRef = useRef<Monaco | null>(null);
+
   const handleEditorChange = (newValue: string | undefined) => {
     onChange(newValue || '');
   };
+
+  const updateMarkers = useCallback(() => {
+    if (!monacoRef.current || !editorRef.current) return;
+
+    const editor = editorRef.current as { getModel: () => unknown };
+    const model = editor.getModel();
+    if (!model) return;
+
+    // Convert SQLError[] to Monaco markers
+    const markers = errors.map(error => ({
+      severity: error.severity === 'error'
+        ? monacoRef.current!.MarkerSeverity.Error
+        : monacoRef.current!.MarkerSeverity.Warning,
+      message: error.message,
+      startLineNumber: error.line,
+      startColumn: error.column,
+      endLineNumber: error.endLine || error.line,
+      endColumn: error.endColumn || error.column + 1
+    }));
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    monacoRef.current.editor.setModelMarkers(model as any, 'sql-parser', markers);
+  }, [errors]);
+
+  const handleEditorDidMount = (editor: unknown, monaco: Monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    updateMarkers();
+  };
+
+  // Update markers when errors change
+  useEffect(() => {
+    updateMarkers();
+  }, [updateMarkers]);
 
   const handleLoadExample = () => {
     onChange(defaultSQL);
   };
 
   const handleExport = () => {
+    if (!isValid) return; // Don't export invalid SQL
+
     const blob = new Blob([value], { type: 'text/sql' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -94,10 +139,22 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col pb-0 gap-4">
+      <CardHeader>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <CardTitle className="text-base sm:text-lg">SQL Editor</CardTitle>
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-base sm:text-lg">SQL Editor</CardTitle>
+            <div className="flex items-center gap-1">
+              {isValid ? (
+                <CheckCircle className="w-4 h-4 text-green-500" />
+              ) : (
+                <AlertCircle className="w-4 h-4 text-red-500" />
+              )}
+              <span className="text-xs text-muted-foreground">
+                {isValid ? 'Valid' : `${errors.length} error${errors.length !== 1 ? 's' : ''}`}
+              </span>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-1 sm:gap-2">
             <Button
               variant="outline"
@@ -121,6 +178,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
               variant="outline"
               size="sm"
               onClick={handleExport}
+              disabled={!isValid}
               className="text-xs flex-1 sm:flex-none min-w-0"
             >
               <Download className="w-3 h-3 sm:mr-1" />
@@ -130,6 +188,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
               <Button
                 size="sm"
                 onClick={onExecute}
+                disabled={!isValid}
                 className="text-xs flex-1 sm:flex-none min-w-0"
               >
                 <Play className="w-3 h-3 sm:mr-1" />
@@ -147,6 +206,7 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             defaultLanguage="sql"
             value={value}
             onChange={handleEditorChange}
+            onMount={handleEditorDidMount}
             theme="vs-dark"
             options={{
               minimap: { enabled: false },
@@ -184,6 +244,19 @@ export const CodeEditor: React.FC<CodeEditorProps> = ({
             }}
           />
         </div>
+        {!isValid && errors.length > 0 && (
+          <div className="p-3 border-b absolute bottom-4">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                {errors.length === 1
+                  ? `SQL Error: ${errors[0].message}`
+                  : `${errors.length} SQL errors found. Check the editor for details.`
+                }
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

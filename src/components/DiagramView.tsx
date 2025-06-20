@@ -135,6 +135,7 @@ const nodeTypes = {
 
 interface DiagramViewProps {
   diagram: SQLDiagram;
+  isValidSQL: boolean;
 }
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
@@ -174,7 +175,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
   return { nodes, edges };
 };
 
-export const DiagramView: React.FC<DiagramViewProps> = ({ diagram }) => {
+export const DiagramView: React.FC<DiagramViewProps> = ({ diagram, isValidSQL }) => {
   const initialNodes: Node[] = useMemo(() => {
     return diagram.tables.map((table, index) => ({
       id: table.name,
@@ -238,6 +239,19 @@ export const DiagramView: React.FC<DiagramViewProps> = ({ diagram }) => {
     setNodes(newNodes);
     setEdges(newEdges);
   }, [diagram, initialNodes, initialEdges, setNodes, setEdges]);
+
+  if (!isValidSQL) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold mb-2">Invalid SQL</h3>
+          <p className="text-muted-foreground">
+            Ensure your SQL syntax is correct and all tables are defined properly.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (diagram.tables.length === 0) {
     return (

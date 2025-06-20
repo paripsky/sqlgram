@@ -5,7 +5,7 @@ import { CodeEditor } from '@/components/CodeEditor';
 import { DiagramViewWithProvider } from '@/components/DiagramView';
 import { parseSQLToDiagram, parseSimpleSQL } from '@/lib/sqlParser';
 import { useIsMobile } from '@/hooks/use-mobile';
-import type { SQLDiagram } from '@/lib/sqlParser';
+import type { SQLDiagram, SQLError } from '@/lib/sqlParser';
 
 const defaultSQL = `-- PostgreSQL Database Schema Example
 CREATE TABLE users (
@@ -50,6 +50,8 @@ CREATE TABLE comments (
 function App() {
   const [sqlCode, setSqlCode] = useState(defaultSQL);
   const [diagram, setDiagram] = useState<SQLDiagram>({ tables: [], relationships: [] });
+  const [sqlErrors, setSqlErrors] = useState<SQLError[]>([]);
+  const [isValidSQL, setIsValidSQL] = useState(true);
   const isMobile = useIsMobile();
 
   // Parse SQL and update diagram
@@ -57,29 +59,52 @@ function App() {
     return () => {
       if (!sqlCode.trim()) {
         setDiagram({ tables: [], relationships: [] });
+        setSqlErrors([]);
+        setIsValidSQL(true);
         return;
       }
 
       try {
         // Try advanced parser first
-        const parsedDiagram = parseSQLToDiagram(sqlCode);
+        const parseResult = parseSQLToDiagram(sqlCode);
 
-        // If no tables found, try simple regex parser
-        if (parsedDiagram.tables.length === 0) {
-          const simpleParsedDiagram = parseSimpleSQL(sqlCode);
-          setDiagram(simpleParsedDiagram);
+        // If no tables found and SQL is valid, try simple regex parser
+        if (parseResult.diagram.tables.length === 0 && parseResult.isValid) {
+          const simpleParseResult = parseSimpleSQL(sqlCode);
+          // Only use simple parser result if it found tables or if main parser had no errors
+          if (simpleParseResult.diagram.tables.length > 0) {
+            setDiagram(simpleParseResult.diagram);
+            setSqlErrors(simpleParseResult.errors);
+            setIsValidSQL(simpleParseResult.isValid);
+          } else {
+            // Use main parser result even if no tables found, as long as SQL is valid
+            setDiagram(parseResult.diagram);
+            setSqlErrors(parseResult.errors);
+            setIsValidSQL(parseResult.isValid);
+          }
         } else {
-          setDiagram(parsedDiagram);
+          setDiagram(parseResult.diagram);
+          setSqlErrors(parseResult.errors);
+          setIsValidSQL(parseResult.isValid);
         }
       } catch (error) {
         console.error('Error parsing SQL:', error);
         // Fallback to simple parser
         try {
-          const simpleParsedDiagram = parseSimpleSQL(sqlCode);
-          setDiagram(simpleParsedDiagram);
+          const simpleParseResult = parseSimpleSQL(sqlCode);
+          setDiagram(simpleParseResult.diagram);
+          setSqlErrors(simpleParseResult.errors);
+          setIsValidSQL(simpleParseResult.isValid);
         } catch (simpleError) {
           console.error('Error with simple parser:', simpleError);
           setDiagram({ tables: [], relationships: [] });
+          setSqlErrors([{
+            message: 'Critical parsing error',
+            line: 1,
+            column: 1,
+            severity: 'error'
+          }]);
+          setIsValidSQL(false);
         }
       }
     };
@@ -133,6 +158,8 @@ function App() {
                   value={sqlCode}
                   onChange={setSqlCode}
                   onExecute={updateDiagram}
+                  errors={sqlErrors}
+                  isValid={isValidSQL}
                 />
               </div>
             </TabsContent>
@@ -152,6 +179,8 @@ function App() {
                   value={sqlCode}
                   onChange={setSqlCode}
                   onExecute={updateDiagram}
+                  errors={sqlErrors}
+                  isValid={isValidSQL}
                 />
               </div>
             </ResizablePanel>
@@ -162,7 +191,7 @@ function App() {
               <div className="h-full p-4">
                 <div className="h-full border rounded-lg bg-card">
                   <div className="h-full">
-                    <DiagramViewWithProvider diagram={diagram} />
+                    <DiagramViewWithProvider diagram={diagram} isValidSQL={isValidSQL} />
                   </div>
                 </div>
               </div>
