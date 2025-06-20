@@ -130,7 +130,7 @@ function App() {
       <header className="border-b bg-card px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold">SQLGram</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">sqlgram</h1>
             <p className="text-xs sm:text-sm text-muted-foreground">
               PostgreSQL Schema Visualizer
             </p>
