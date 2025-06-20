@@ -8,6 +8,8 @@ import ReactFlow, {
   ConnectionMode,
   ReactFlowProvider,
   Position,
+  Handle,
+  MarkerType,
 } from 'reactflow';
 import type { Node, Edge, Connection } from 'reactflow';
 import dagre from 'dagre';
@@ -29,45 +31,99 @@ const TableNode: React.FC<TableNodeProps> = ({ data }) => {
   const { table } = data;
 
   return (
-    <Card className="min-w-[250px] shadow-lg border-2">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-bold text-center">
-          {table.name}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0">
-        <div className="space-y-2">
-          {table.columns.map((column, index) => (
-            <div
-              key={index}
-              className="flex items-center justify-between p-2 rounded bg-muted/30"
-            >
-              <div className="flex items-center space-x-2">
-                <span className="font-medium">{column.name}</span>
-                {column.primaryKey && (
-                  <Badge variant="default" className="text-xs">
-                    PK
-                  </Badge>
-                )}
-                {column.foreignKey && (
-                  <Badge variant="secondary" className="text-xs">
-                    FK
-                  </Badge>
-                )}
+    <div className="relative">
+      {/* Top handle for incoming connections */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        id="top"
+        style={{ 
+          background: '#64748b',
+          borderColor: '#64748b',
+          width: 10,
+          height: 10
+        }}
+      />
+      
+      {/* Bottom handle for outgoing connections */}
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        id="bottom"
+        style={{ 
+          background: '#64748b',
+          borderColor: '#64748b',
+          width: 10,
+          height: 10
+        }}
+      />
+      
+      {/* Left handle for connections */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        id="left"
+        style={{ 
+          background: '#64748b',
+          borderColor: '#64748b',
+          width: 10,
+          height: 10
+        }}
+      />
+      
+      {/* Right handle for connections */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="right"
+        style={{ 
+          background: '#64748b',
+          borderColor: '#64748b',
+          width: 10,
+          height: 10
+        }}
+      />
+
+      <Card className="min-w-[250px] shadow-lg border-2">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-bold text-center">
+            {table.name}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="space-y-2">
+            {table.columns.map((column, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-2 rounded bg-muted/30"
+              >
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">{column.name}</span>
+                  {column.primaryKey && (
+                    <Badge variant="default" className="text-xs">
+                      PK
+                    </Badge>
+                  )}
+                  {column.foreignKey && (
+                    <Badge variant="secondary" className="text-xs">
+                      FK
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center space-x-1">
+                  <span className="text-sm text-muted-foreground">
+                    {column.type}
+                  </span>
+                  {!column.nullable && (
+                    <span className="text-xs text-red-500">*</span>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center space-x-1">
-                <span className="text-sm text-muted-foreground">
-                  {column.type}
-                </span>
-                {!column.nullable && (
-                  <span className="text-xs text-red-500">*</span>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
@@ -127,12 +183,30 @@ export const DiagramView: React.FC<DiagramViewProps> = ({ diagram }) => {
       id: `e${index}`,
       source: rel.from.table,
       target: rel.to.table,
+      sourceHandle: 'bottom',
+      targetHandle: 'top',
       type: 'smoothstep',
       animated: true,
-      label: rel.type,
-      style: { stroke: '#64748b' },
-      labelStyle: { fontSize: 12, fontWeight: 'bold' },
-      labelBgStyle: { fill: 'white', fillOpacity: 0.8 },
+      label: `${rel.from.column} → ${rel.to.column}`,
+      style: { 
+        stroke: '#64748b',
+        strokeWidth: 2
+      },
+      labelStyle: { 
+        fontSize: 12, 
+        fontWeight: 'bold',
+        fill: '#64748b'
+      },
+      labelBgStyle: { 
+        fill: 'white', 
+        fillOpacity: 0.9,
+        rx: 4,
+        ry: 4
+      },
+      markerEnd: {
+        type: MarkerType.Arrow,
+        color: '#64748b',
+      },
     }));
   }, [diagram.relationships]);
 
